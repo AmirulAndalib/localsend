@@ -85,7 +85,8 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Sign before "Add DLL files" so the Microsoft-signed CRT DLLs keep their original signature
+      # Sign before "Add DLL files" so the Microsoft-signed CRT DLLs keep their original signature.
+      # data\app.so is the Dart AOT snapshot; on Windows it is a PE DLL despite the extension, so recurse and include "so"
       - name: Sign app binaries (Azure Trusted Signing)
         uses: azure/trusted-signing-action@v0
         with:
@@ -93,7 +94,8 @@ jobs:
           trusted-signing-account-name: tienisto
           certificate-profile-name: localsend
           files-folder: ${{ github.workspace }}\app\build\windows\arm64\runner\Release
-          files-folder-filter: exe,dll
+          files-folder-recurse: true
+          files-folder-filter: exe,dll,so
           file-digest: SHA256
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
@@ -103,6 +105,7 @@ jobs:
         run: |
           $signtool = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin\10.*\arm64\signtool.exe' | Select-Object -Last 1
           & $signtool.FullName verify /pa /v app\build\windows\arm64\runner\Release\localsend_app.exe
+          & $signtool.FullName verify /pa /v app\build\windows\arm64\runner\Release\data\app.so
 
       - name: Create empty settings.json
         working-directory: app
